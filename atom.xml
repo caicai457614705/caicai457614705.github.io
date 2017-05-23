@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>汪星人的博客</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2017-05-19T03:01:10.000Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>王志鹏</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SpringCloud网关角色-Zuul</title>
+    <link href="http://yoursite.com/2017/05/19/cloud_zuul/"/>
+    <id>http://yoursite.com/2017/05/19/cloud_zuul/</id>
+    <published>2017-05-19T03:01:10.000Z</published>
+    <updated>2017-05-19T03:01:10.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="SpringBoot网关——Zuul"><a href="#SpringBoot网关——Zuul" class="headerlink" title="SpringBoot网关——Zuul"></a>SpringBoot网关——Zuul</h1><h1 id="Zuul简介"><a href="#Zuul简介" class="headerlink" title="Zuul简介"></a>Zuul简介</h1><h3 id="Zuul的主要功能是路由和过滤器。路由功能是微服务的一部分，比如／api-user映射到user服务，-api-shop映射到shop服务。zuul实现了负载均衡。"><a href="#Zuul的主要功能是路由和过滤器。路由功能是微服务的一部分，比如／api-user映射到user服务，-api-shop映射到shop服务。zuul实现了负载均衡。" class="headerlink" title="Zuul的主要功能是路由和过滤器。路由功能是微服务的一部分，比如／api/user映射到user服务，/api/shop映射到shop服务。zuul实现了负载均衡。"></a>Zuul的主要功能是路由和过滤器。路由功能是微服务的一部分，比如／api/user映射到user服务，/api/shop映射到shop服务。zuul实现了负载均衡。</h3><p><strong>zuul有以下功能</strong></p>
+<ul>
+<li>Authentication</li>
+<li>Insights</li>
+<li>Stress Testing</li>
+<li>Canary Testing</li>
+<li>Dynamic Routing</li>
+<li>Service Migration</li>
+<li>Load Shedding</li>
+<li>Security</li>
+<li>Static Response handling</li>
+<li>Active/Active traffic management</li>
+</ul>
+<h1 id="依赖添加"><a href="#依赖添加" class="headerlink" title="依赖添加"></a>依赖添加</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;spring-cloud-starter-zuul&lt;/artifactId&gt;</div><div class="line">&lt;/dependency&gt;</div></pre></td></tr></table></figure>
+<h1 id="服务提供"><a href="#服务提供" class="headerlink" title="服务提供"></a>服务提供</h1><p>在其入口applicaton类加上注解@EnableZuulProxy，开启zuul：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">@EnableZuulProxy</div><div class="line">@EnableEurekaClient</div><div class="line">@SpringBootApplication</div><div class="line">public class ServiceZuulApplication &#123;</div><div class="line"></div><div class="line">    public static void main(String[] args) &#123;</div><div class="line">        SpringApplication.run(ServiceZuulApplication.class, args);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1 id="配置文件（这个很重要）"><a href="#配置文件（这个很重要）" class="headerlink" title="配置文件（这个很重要）"></a>配置文件（这个很重要）</h1><p>定义他的zone, 服务端口， 名称， 路由规则等等<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">eureka:</div><div class="line">  client:</div><div class="line">    serviceUrl:</div><div class="line">      defaultZone: http://localhost:8761/eureka/</div><div class="line">server:</div><div class="line">  port: 8769</div><div class="line">spring:</div><div class="line">  application:</div><div class="line">    name: service-zuul</div><div class="line">zuul:</div><div class="line">  routes:</div><div class="line">    api-a:</div><div class="line">      path: /api-a/**</div><div class="line">      serviceId: service-ribbon</div><div class="line">    api-b:</div><div class="line">      path: /api-b/**</div><div class="line">      serviceId: service-feign</div></pre></td></tr></table></figure></p>
+<h1 id="服务过滤"><a href="#服务过滤" class="headerlink" title="服务过滤"></a>服务过滤</h1><p>zuul不仅只是路由，并且还能过滤，做一些安全验证。继续改造工程；<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line">@Component</div><div class="line">public class MyFilter extends ZuulFilter&#123;</div><div class="line"></div><div class="line">    private static Logger log = LoggerFactory.getLogger(MyFilter.class);</div><div class="line">    @Override</div><div class="line">    public String filterType() &#123;</div><div class="line">        return &quot;pre&quot;;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    @Override</div><div class="line">    public int filterOrder() &#123;</div><div class="line">        return 0;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    @Override</div><div class="line">    public boolean shouldFilter() &#123;</div><div class="line">        return true;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    @Override</div><div class="line">    public Object run() &#123;</div><div class="line">        RequestContext ctx = RequestContext.getCurrentContext();</div><div class="line">        HttpServletRequest request = ctx.getRequest();</div><div class="line">        log.info(String.format(&quot;%s &gt;&gt;&gt; %s&quot;, request.getMethod(), request.getRequestURL().toString()));</div><div class="line">        Object accessToken = request.getParameter(&quot;token&quot;);</div><div class="line">        if(accessToken == null) &#123;</div><div class="line">            log.warn(&quot;token is empty&quot;);</div><div class="line">            ctx.setSendZuulResponse(false);</div><div class="line">            ctx.setResponseStatusCode(401);</div><div class="line">            try &#123;</div><div class="line">                ctx.getResponse().getWriter().write(&quot;token is empty&quot;);</div><div class="line">            &#125;catch (Exception e)&#123;&#125;</div><div class="line"></div><div class="line">            return null;</div><div class="line">        &#125;</div><div class="line">        log.info(&quot;ok&quot;);</div><div class="line">        return null;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<ul>
+<li>filterType：返回一个字符串代表过滤器的类型，在zuul中定义了四种不同生命周期的过滤器类型，具体如下：</li>
+<li>pre：路由之前</li>
+<li>routing：路由之时</li>
+<li>post： 路由之后</li>
+<li>error：发送错误调用</li>
+<li>filterOrder：过滤的顺序</li>
+<li>shouldFilter：这里可以写逻辑判断，是否要过滤，本文true,永远过滤。</li>
+<li>run：过滤器的具体逻辑。可用很复杂，包括查sql，nosql去判断该请求到底有没有权限访问。</li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;SpringBoot网关——Zuul&quot;&gt;&lt;a href=&quot;#SpringBoot网关——Zuul&quot; class=&quot;headerlink&quot; title=&quot;SpringBoot网关——Zuul&quot;&gt;&lt;/a&gt;SpringBoot网关——Zuul&lt;/h1&gt;&lt;h1 id=&quot;Z
+    
+    </summary>
+    
+      <category term="SpringBoot" scheme="http://yoursite.com/categories/SpringBoot/"/>
+    
+    
+      <category term="学习总结" scheme="http://yoursite.com/tags/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/"/>
+    
+      <category term="教程" scheme="http://yoursite.com/tags/%E6%95%99%E7%A8%8B/"/>
+    
+      <category term="SpringCloud" scheme="http://yoursite.com/tags/SpringCloud/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>SpringCloud服务注册和发现</title>
+    <link href="http://yoursite.com/2017/05/19/cloud_regist/"/>
+    <id>http://yoursite.com/2017/05/19/cloud_regist/</id>
+    <published>2017-05-19T02:42:25.000Z</published>
+    <updated>2017-05-19T02:42:25.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="微服务架构"><a href="#微服务架构" class="headerlink" title="微服务架构"></a>微服务架构</h1><p><img src="../img/cloud.png" alt="image"></p>
+<h1 id="服务注册中心（相当于zookeeper）"><a href="#服务注册中心（相当于zookeeper）" class="headerlink" title="服务注册中心（相当于zookeeper）"></a>服务注册中心（相当于zookeeper）</h1><ol>
+<li><p>创建启动类，添加EurekaServer标记</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">@EnableEurekaServer</div><div class="line">@SpringBootApplication</div><div class="line">public class EurekaserverApplication &#123;</div><div class="line"></div><div class="line">    public static void main(String[] args) &#123;</div><div class="line">        SpringApplication.run(EurekaserverApplication.class, args);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>eureka是一个高可用的组件，它没有后端缓存，每一个实例注册之后需要向注册中心发送心跳（因此可以在内存中完成），在默认情况下erureka server也是一个eureka client ,必须要指定一个 server。eureka server的配置文件appication.yml：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">server:</div><div class="line">  port: 8761</div><div class="line"></div><div class="line">eureka:</div><div class="line">  instance:</div><div class="line">    hostname: localhost</div><div class="line">  client:</div><div class="line">    registerWithEureka: false</div><div class="line">    fetchRegistry: false</div><div class="line">    serviceUrl:</div><div class="line">      defaultZone: http://$&#123;eureka.instance.hostname&#125;:$&#123;server.port&#125;/eureka/</div></pre></td></tr></table></figure>
+</li>
+<li><p>访问<a href="http://localhost:8761即可看到控制界面" target="_blank" rel="external">http://localhost:8761即可看到控制界面</a></p>
+</li>
+</ol>
+<h1 id="服务提供者-当然也是可以当消费者的"><a href="#服务提供者-当然也是可以当消费者的" class="headerlink" title="服务提供者(当然也是可以当消费者的)"></a>服务提供者(当然也是可以当消费者的)</h1><ol>
+<li><p>创建工程方式基本一样，就依赖改一下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">//spring-cloud-starter-eureka-server换成spring-cloud-starter-eureka</div><div class="line"></div><div class="line">        &lt;dependency&gt;</div><div class="line">            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;</div><div class="line">            &lt;artifactId&gt;spring-cloud-starter-eureka&lt;/artifactId&gt;</div><div class="line">        &lt;/dependency&gt;</div></pre></td></tr></table></figure>
+</li>
+<li><p>用@EnableEurekaClient标注是服务提供者</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">@SpringBootApplication</div><div class="line">@EnableEurekaClient</div><div class="line">@RestController</div><div class="line">public class ServiceHiApplication &#123;</div><div class="line"></div><div class="line">    public static void main(String[] args) &#123;</div><div class="line">        SpringApplication.run(ServiceHiApplication.class, args);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    @Value(&quot;$&#123;server.port&#125;&quot;)</div><div class="line">    String port;</div><div class="line">    @RequestMapping(&quot;/hi&quot;)</div><div class="line">    public String home(@RequestParam String name) &#123;</div><div class="line">        return &quot;hi &quot;+name+&quot;,i am from port:&quot; +port;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>同时还要配置，注册时的所在域，是之前的服务中心，并且指定要提供的服务的名字</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">eureka:</div><div class="line">  client:</div><div class="line">    serviceUrl:</div><div class="line">      defaultZone: http://localhost:8761/eureka/</div><div class="line">server:</div><div class="line">  port: 8762</div><div class="line">spring:</div><div class="line">  application:</div><div class="line">    name: service-hi</div></pre></td></tr></table></figure>
+</li>
+</ol>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;微服务架构&quot;&gt;&lt;a href=&quot;#微服务架构&quot; class=&quot;headerlink&quot; title=&quot;微服务架构&quot;&gt;&lt;/a&gt;微服务架构&lt;/h1&gt;&lt;p&gt;&lt;img src=&quot;../img/cloud.png&quot; alt=&quot;image&quot;&gt;&lt;/p&gt;
+&lt;h1 id=&quot;服务注册中
+    
+    </summary>
+    
+      <category term="SpringBoot" scheme="http://yoursite.com/categories/SpringBoot/"/>
+    
+    
+      <category term="学习总结" scheme="http://yoursite.com/tags/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/"/>
+    
+      <category term="教程" scheme="http://yoursite.com/tags/%E6%95%99%E7%A8%8B/"/>
+    
+      <category term="SpringCloud" scheme="http://yoursite.com/tags/SpringCloud/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>SpringCloud服务消费</title>
+    <link href="http://yoursite.com/2017/05/19/cloud_consume/"/>
+    <id>http://yoursite.com/2017/05/19/cloud_consume/</id>
+    <published>2017-05-19T02:31:13.000Z</published>
+    <updated>2017-05-19T02:31:13.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Feign简介"><a href="#Feign简介" class="headerlink" title="Feign简介"></a>Feign简介</h1><h4 id="Feign是一个声明式的web服务客户端，它使得写web服务变得更简单。使用Feign-只需要创建一个接口并注解。它具有可插拔的注解特性，包括Feign-注解和JAX-RS注解。Feign同时支持可插拔的编码器和解码器。spring-cloud对Spring-mvc添加了支持，同时在spring-web中次用相同的HttpMessageConverter。当我们使用feign的时候，spring-cloud-整和了Ribbon和eureka去提供负载均衡。"><a href="#Feign是一个声明式的web服务客户端，它使得写web服务变得更简单。使用Feign-只需要创建一个接口并注解。它具有可插拔的注解特性，包括Feign-注解和JAX-RS注解。Feign同时支持可插拔的编码器和解码器。spring-cloud对Spring-mvc添加了支持，同时在spring-web中次用相同的HttpMessageConverter。当我们使用feign的时候，spring-cloud-整和了Ribbon和eureka去提供负载均衡。" class="headerlink" title="Feign是一个声明式的web服务客户端，它使得写web服务变得更简单。使用Feign,只需要创建一个接口并注解。它具有可插拔的注解特性，包括Feign 注解和JAX-RS注解。Feign同时支持可插拔的编码器和解码器。spring cloud对Spring mvc添加了支持，同时在spring web中次用相同的HttpMessageConverter。当我们使用feign的时候，spring cloud 整和了Ribbon和eureka去提供负载均衡。"></a>Feign是一个声明式的web服务客户端，它使得写web服务变得更简单。使用Feign,只需要创建一个接口并注解。它具有可插拔的注解特性，包括Feign 注解和JAX-RS注解。Feign同时支持可插拔的编码器和解码器。spring cloud对Spring mvc添加了支持，同时在spring web中次用相同的HttpMessageConverter。当我们使用feign的时候，spring cloud 整和了Ribbon和eureka去提供负载均衡。</h4><h1 id="创建feign工程"><a href="#创建feign工程" class="headerlink" title="创建feign工程"></a>创建feign工程</h1><ol>
+<li><p>相对于之前的服务多加一个feign依赖</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;spring-cloud-starter-feign&lt;/artifactId&gt;</div><div class="line">&lt;/dependency&gt;</div></pre></td></tr></table></figure>
+</li>
+<li><p>配置文件<br>就换了个name ,表示这是另一个服务，然后消费之前注册的服务,同理另外一个服务也可以用同样的方式消费该服务</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">eureka:</div><div class="line">  client:</div><div class="line">    serviceUrl:</div><div class="line">      defaultZone: http://localhost:8761/eureka/</div><div class="line">server:</div><div class="line">  port: 8765</div><div class="line">spring:</div><div class="line">  application:</div><div class="line">    name: service-feign</div></pre></td></tr></table></figure>
+</li>
+<li><p>在程序的入口类，需要通过注解@EnableFeignClients来开启feign:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">@SpringBootApplication</div><div class="line">@EnableDiscoveryClient</div><div class="line">@EnableFeignClients</div><div class="line">public class ServiceFeignApplication &#123;</div><div class="line"></div><div class="line">    public static void main(String[] args) &#123;</div><div class="line">        SpringApplication.run(ServiceFeignApplication.class, args);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>定义一个feign接口类,通过@ FeignClient（“服务名”），来指定调用哪个服务：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">@FeignClient(value = &quot;service-hi&quot;)</div><div class="line">public interface SchedualServiceHi &#123;</div><div class="line">    @RequestMapping(value = &quot;/hi&quot;,method = RequestMethod.GET)</div><div class="line">    String sayHiFromClientOne(@RequestParam(value = &quot;name&quot;) String name);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>web层使用服务</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">@RestController</div><div class="line">public class HiController &#123;</div><div class="line"></div><div class="line">    @Autowired</div><div class="line">    SchedualServiceHi schedualServiceHi;</div><div class="line">    @RequestMapping(value = &quot;/hi&quot;,method = RequestMethod.GET)</div><div class="line">    public String sayHi(@RequestParam String name)&#123;</div><div class="line">        return schedualServiceHi.sayHiFromClientOne(name);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>可以指定服务的配置类</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">@FeignClient(name = &quot;stores&quot;, configuration = FooConfiguration.class)</div><div class="line">public interface StoreClient &#123;</div><div class="line">    //..</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>重写配置,定制服务（先了解以后研究）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">@Configuration</div><div class="line">public class FooConfiguration &#123;</div><div class="line">    @Bean</div><div class="line">    public Contract feignContractg() &#123;</div><div class="line">        return new feign.Contract.Default();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    @Bean</div><div class="line">    public BasicAuthRequestInterceptor basicAuthRequestInterceptor() &#123;</div><div class="line">        return new BasicAuthRequestInterceptor(&quot;user&quot;, &quot;password&quot;);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Feign简介&quot;&gt;&lt;a href=&quot;#Feign简介&quot; class=&quot;headerlink&quot; title=&quot;Feign简介&quot;&gt;&lt;/a&gt;Feign简介&lt;/h1&gt;&lt;h4 id=&quot;Feign是一个声明式的web服务客户端，它使得写web服务变得更简单。使用Feign-只
+    
+    </summary>
+    
+      <category term="SpringBoot" scheme="http://yoursite.com/categories/SpringBoot/"/>
+    
+    
+      <category term="学习总结" scheme="http://yoursite.com/tags/%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/"/>
+    
+      <category term="教程" scheme="http://yoursite.com/tags/%E6%95%99%E7%A8%8B/"/>
+    
+      <category term="SpringCloud" scheme="http://yoursite.com/tags/SpringCloud/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Consumer源码笔记</title>
+    <link href="http://yoursite.com/2017/05/10/kafka_consumer/"/>
+    <id>http://yoursite.com/2017/05/10/kafka_consumer/</id>
+    <published>2017-05-10T09:20:50.000Z</published>
+    <updated>2017-05-10T11:50:20.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Consumer源码笔记"><a href="#Consumer源码笔记" class="headerlink" title="Consumer源码笔记"></a><strong>Consumer源码笔记</strong></h1><h3 id="一-ConsumerConfig"><a href="#一-ConsumerConfig" class="headerlink" title="一.ConsumerConfig"></a>一.ConsumerConfig</h3><p>创建consumer，主要是传递配置,keyDerializer和valueDerializer类，然后consumer中有一个private构造方法，会用配置文件创建一个consumerConfig，来真正的初始化KafkaConsumer，而这个consumerConfig中呢，主要是2个东西，一个是ConfigDef CONFIG这个类主要是用来定义配置项的名字，类型，默认值，以及解释文档，另外一个东西就是originals,这个参数是在父类AbstractConfig中的，这个才是你真正自己传进来的参数AbstractConfig类会解析这个map,通过definition.parse方法解析到values这个map中存起来备用。</p>
+<h3 id="二-Consumer初始化过程"><a href="#二-Consumer初始化过程" class="headerlink" title="二.Consumer初始化过程"></a>二.Consumer初始化过程</h3><p>可以查看Consumer的源码，里面有很多基本参数，配置中那些比较有用的都有，还有几个重要的如下：</p>
+<ol>
+<li>ConsumerCoordinator:kafka均衡负载器</li>
+<li>Fetcher: 很重要的消息收发角色,发送抓取请求，处理和缓存抓取的数据就靠这个类</li>
+<li>Metrics：用于监控kafka的一些测量指标</li>
+<li>Metadata: 存放原信息的类</li>
+<li>ChannelBuilder: 怎么看都是创建KafkaChannel的的类</li>
+<li>ConsumerNetworkClient:很重要的消息收发角色，暂时还没看,主要是处理netword IO的</li>
+</ol>
+<h3 id="三-consumer方法解读"><a href="#三-consumer方法解读" class="headerlink" title="三.consumer方法解读"></a>三.consumer方法解读</h3><ol>
+<li><p>consumer中的poll</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">do</span> &#123;</div><div class="line"><span class="comment">//拉取一次</span></div><div class="line">                Map&lt;TopicPartition, List&lt;ConsumerRecord&lt;K, V&gt;&gt;&gt; records = pollOnce(remaining);</div><div class="line">                <span class="keyword">if</span> (!records.isEmpty()) &#123;</div><div class="line">                    <span class="comment">//在返回这次拉取到的数据之前，就可以开始下一轮的拉取,由于这次拉取我们必须返回这次拉取的数据，并且offset也更新到了相应位置，所以我们需要disables wakeups和delayed task execution(我也不太明白其作用,╮(╯▽╰)╭)</span></div><div class="line">                    </div><div class="line">                    <span class="comment">//发起拉取请求，并且poll数据，在pullonce中也有</span></div><div class="line">                fetcher.initFetches(metadata.fetch());</div><div class="line">                    client.quickPoll();</div><div class="line">                    <span class="keyword">return</span> <span class="keyword">new</span> ConsumerRecords&lt;&gt;(records);</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="keyword">long</span> elapsed = time.milliseconds() - start;</div><div class="line">                remaining = timeout - elapsed;</div><div class="line">            &#125; <span class="keyword">while</span> (remaining &gt; <span class="number">0</span>);</div></pre></td></tr></table></figure>
+</li>
+<li><p>pollOnce<br>其中有几个重要的方法: </p>
+</li>
+</ol>
+<ul>
+<li>fetchedRecords:这个方法其实只是把缓存在fetcher中的records遍历出来放到一个list里面，并且更新每个topicPartion中的offset，然后清空这个缓存records的list</li>
+<li>initFetches: 在这个方法中会创建对kafka集群中节点的消息抓取请求,然后在client.send中add一个listener来支持回调，回调成功时，处理response,在处理过程中就会将抓取到的消息缓存到fetcher的recordsList中</li>
+<li>poll,quickpoll这些还真没看明白</li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Consumer源码笔记&quot;&gt;&lt;a href=&quot;#Consumer源码笔记&quot; class=&quot;headerlink&quot; title=&quot;Consumer源码笔记&quot;&gt;&lt;/a&gt;&lt;strong&gt;Consumer源码笔记&lt;/strong&gt;&lt;/h1&gt;&lt;h3 id=&quot;一-Consum
+    
+    </summary>
+    
+      <category term="Kafka" scheme="http://yoursite.com/categories/Kafka/"/>
+    
+    
+      <category term="源码笔记" scheme="http://yoursite.com/tags/%E6%BA%90%E7%A0%81%E7%AC%94%E8%AE%B0/"/>
+    
+      <category term="原创" scheme="http://yoursite.com/tags/%E5%8E%9F%E5%88%9B/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Producer源码笔记</title>
+    <link href="http://yoursite.com/2017/05/10/kafka_producer/"/>
+    <id>http://yoursite.com/2017/05/10/kafka_producer/</id>
+    <published>2017-05-10T09:20:49.000Z</published>
+    <updated>2017-05-10T11:49:42.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Producer源码笔记"><a href="#Producer源码笔记" class="headerlink" title="Producer源码笔记"></a><strong>Producer源码笔记</strong></h1><h3 id="一-ProducerConfig"><a href="#一-ProducerConfig" class="headerlink" title="一.ProducerConfig"></a>一.ProducerConfig</h3><p>创建producer，主要是传递配置,keySerializer和valueSerializer类，然后Producer中有一个private构造方法，会用配置文件创建一个producerConfig，来真正的初始化KafkaProducer，而这个producerConfig中呢，主要是2个东西，一个是ConfigDef CONFIG这个类主要是用来定义配置项的名字，类型，默认值，以及解释文档，另外一个东西就是originals,这个参数是在父类AbstractConfig中的，这个才是你真正自己传进来的参数AbstractConfig类会解析这个map,通过definition.parse方法解析到values这个map中存起来备用。</p>
+<h3 id="二-Producer初始化过程"><a href="#二-Producer初始化过程" class="headerlink" title="二.Producer初始化过程"></a>二.Producer初始化过程</h3><p>可以查看Producer的源码，里面有很多基本参数，配置中那些比较有用的都有，还有几个重要的如下：</p>
+<ol>
+<li>sender: 真正用于触发（真正发的是KafkaChannel）producer发送消息的地方，是runable类型</li>
+<li><p>ioThread: 查看源码，可以看到他会将sender作为入参，创建一个线程，并且启动，从构造函数里面可以看出这是一个守护线程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">String ioThreadName = <span class="string">"kafka-producer-network-thread"</span> + (clientId.length() &gt; <span class="number">0</span> ? <span class="string">" | "</span> + clientId : <span class="string">""</span>);</div><div class="line">            <span class="keyword">this</span>.ioThread = <span class="keyword">new</span> KafkaThread(ioThreadName, <span class="keyword">this</span>.sender, <span class="keyword">true</span>);</div><div class="line">            <span class="keyword">this</span>.ioThread.start();</div></pre></td></tr></table></figure>
+</li>
+<li><p>Metrics：用于监控kafka的一些测量指标</p>
+</li>
+<li>Metadata: 存放原信息的类</li>
+<li>accumulator: 用于积累batch数据的类</li>
+<li>partitioner: 用于分区的class ,默认的defaultPationer</li>
+</ol>
+<h3 id="三-send方法解读"><a href="#三-send方法解读" class="headerlink" title="三.send方法解读"></a>三.send方法解读</h3><p>平时常用的send,真正调用的是下面这个方法,callback传null而已<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">send(ProducerRecord&lt;K, V&gt; record， Callback callback)</div></pre></td></tr></table></figure></p>
+<p>方法流程如下:</p>
+<ol>
+<li>取元信息</li>
+<li>然后对key,value序列化</li>
+<li>partion方法分配分区</li>
+<li>计算序列化后消息的长度,并去检查是否大于maxRequestSize和totalMemorySize</li>
+<li><p>accumulator.append积累消息并且去batch,返回一个RecordAppendResult</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//检查result中属性，如果是新批次或者批次已满，就唤醒sender线程去发送消息，之前都是block状态等待I/O</span></div><div class="line"><span class="keyword">if</span> (result.batchIsFull || result.newBatchCreated) &#123;</div><div class="line">                log.trace(<span class="string">"Waking up the sender since topic &#123;&#125; partition &#123;&#125; is either full or getting a new batch"</span>, record.topic(), partition);</div><div class="line">                <span class="keyword">this</span>.sender.wakeup();</div><div class="line">            &#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>result.future最后返回一个future,这个是FutureRecordMetadata类型的future(从哪里来待学习)</p>
+</li>
+</ol>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Producer源码笔记&quot;&gt;&lt;a href=&quot;#Producer源码笔记&quot; class=&quot;headerlink&quot; title=&quot;Producer源码笔记&quot;&gt;&lt;/a&gt;&lt;strong&gt;Producer源码笔记&lt;/strong&gt;&lt;/h1&gt;&lt;h3 id=&quot;一-Produc
+    
+    </summary>
+    
+      <category term="Kafka" scheme="http://yoursite.com/categories/Kafka/"/>
+    
+    
+      <category term="源码笔记" scheme="http://yoursite.com/tags/%E6%BA%90%E7%A0%81%E7%AC%94%E8%AE%B0/"/>
+    
+      <category term="原创" scheme="http://yoursite.com/tags/%E5%8E%9F%E5%88%9B/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>想读的书</title>
+    <link href="http://yoursite.com/2017/05/10/to_read/"/>
+    <id>http://yoursite.com/2017/05/10/to_read/</id>
+    <published>2017-05-10T07:06:54.000Z</published>
+    <updated>2017-05-10T11:50:07.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="洞察互联网的二十本数"><a href="#洞察互联网的二十本数" class="headerlink" title="洞察互联网的二十本数"></a>洞察互联网的二十本数</h1><ol>
+<li>互联网的本质</li>
+<li>知识的边界</li>
+<li>大数据时代：生活、工作与思维的大变革</li>
+<li>智能时代</li>
+<li>科技想要什么</li>
+<li>技术至死</li>
+<li>互联网思想十讲</li>
+<li>数字化生存</li>
+<li>信息的社会层面</li>
+<li>链接：网络新科学</li>
+<li>硅谷百年史</li>
+<li>信息规则</li>
+<li>长尾理论</li>
+<li>认知盈余：自由时间的力量</li>
+<li>区块链革命</li>
+<li>信息就是信息：布隆伯格自述</li>
+<li>搜</li>
+<li>Facebook效应</li>
+<li>游戏改变世界：游戏化如何让世界更美好</li>
+<li>创业无畏</li>
+<li>手机：挡不住的呼唤</li>
+<li>小块送三组合</li>
+</ol>
+<h1 id="管理学数据"><a href="#管理学数据" class="headerlink" title="管理学数据"></a>管理学数据</h1><ol>
+<li>管理学</li>
+<li>组织行为学</li>
+<li>营销管理</li>
+<li>人力资源管理</li>
+</ol>
+<h1 id="科普向"><a href="#科普向" class="headerlink" title="科普向"></a>科普向</h1><ol>
+<li>隐藏的宇宙：平行宇宙是什么</li>
+</ol>
+<h1 id="大学生书单"><a href="#大学生书单" class="headerlink" title="大学生书单"></a>大学生书单</h1><ol>
+<li>大金融论纲</li>
+<li>美国货币史</li>
+<li>别闹了，费曼先生</li>
+<li>数学之美</li>
+<li>怀疑的化学家</li>
+<li>化学元素的发现</li>
+<li>这才是心理学：看穿伪心理学的本质</li>
+<li>骗局</li>
+<li>增肌塑性指南</li>
+<li>幸福课</li>
+<li>走，吃火锅</li>
+<li>深度学习的艺术</li>
+<li>我在美国学游戏设计</li>
+<li>建筑迷城</li>
+<li>策略:博弈论导论</li>
+</ol>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;洞察互联网的二十本数&quot;&gt;&lt;a href=&quot;#洞察互联网的二十本数&quot; class=&quot;headerlink&quot; title=&quot;洞察互联网的二十本数&quot;&gt;&lt;/a&gt;洞察互联网的二十本数&lt;/h1&gt;&lt;ol&gt;
+&lt;li&gt;互联网的本质&lt;/li&gt;
+&lt;li&gt;知识的边界&lt;/li&gt;
+&lt;li&gt;大
+    
+    </summary>
+    
+      <category term="阅读" scheme="http://yoursite.com/categories/%E9%98%85%E8%AF%BB/"/>
+    
+    
+      <category term="想做的事" scheme="http://yoursite.com/tags/%E6%83%B3%E5%81%9A%E7%9A%84%E4%BA%8B/"/>
+    
+  </entry>
+  
+</feed>
